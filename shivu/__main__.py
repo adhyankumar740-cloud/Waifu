@@ -3,11 +3,12 @@ import time
 import random
 import re
 import asyncio
-from html import escape 
+from html import escape
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filters, Application
 
+from config import Config
 from shivu import (
     collection,
     top_global_groups_collection,
@@ -22,7 +23,6 @@ from shivu import (
 )
 from shivu.modules import ALL_MODULES
 
-
 # ===================== GLOBAL DICTS =====================
 locks = {}
 last_characters = {}
@@ -33,13 +33,12 @@ last_user = {}
 warned_users = {}
 # ========================================================
 
-
 # Load all modules dynamically
 for module_name in ALL_MODULES:
     importlib.import_module("shivu.modules." + module_name)
 
 
-def escape_markdown(text):
+def escape_markdown(text: str) -> str:
     escape_chars = r'\*_`\\~>#+-=|{}.!'
     return re.sub(r'([%s])' % re.escape(escape_chars), r'\\\1', text)
 
@@ -56,7 +55,7 @@ async def message_counter(update: Update, context: CallbackContext) -> None:
         chat_frequency = await user_totals_collection.find_one({'chat_id': chat_id})
         message_frequency = chat_frequency.get('message_frequency', 100) if chat_frequency else 100
 
-        # Anti-spam system
+        # Anti-spam
         if chat_id in last_user and last_user[chat_id]['user_id'] == user_id:
             last_user[chat_id]['count'] += 1
             if last_user[chat_id]['count'] >= 10:
@@ -72,7 +71,6 @@ async def message_counter(update: Update, context: CallbackContext) -> None:
 
         message_counts[chat_id] = message_counts.get(chat_id, 0) + 1
 
-        # Send image after X messages
         if message_counts[chat_id] % message_frequency == 0:
             await send_image(update, context)
             message_counts[chat_id] = 0
@@ -96,7 +94,7 @@ async def send_image(update: Update, context: CallbackContext) -> None:
     await context.bot.send_photo(
         chat_id=chat_id,
         photo=character['img_url'],
-        caption=f"""A New {character['rarity']} Character Appeared...\n/guess Character Name and add in Your Harem""",
+        caption=f"A New {character['rarity']} Character Appeared...\n/guess Character Name and add in Your Harem",
         parse_mode='Markdown'
     )
 
@@ -109,7 +107,7 @@ async def guess(update: Update, context: CallbackContext) -> None:
         return
 
     if chat_id in first_correct_guesses:
-        await update.message.reply_text('❌️ Already Guessed By Someone.. Try Next Time Bruhh ')
+        await update.message.reply_text('❌️ Already Guessed By Someone.. Try Next Time Bruhh')
         return
 
     guess_text = ' '.join(context.args).lower() if context.args else ''
@@ -118,10 +116,9 @@ async def guess(update: Update, context: CallbackContext) -> None:
         return
 
     name_parts = last_characters[chat_id]['name'].lower().split()
-
     if sorted(name_parts) == sorted(guess_text.split()) or any(part == guess_text for part in name_parts):
         first_correct_guesses[chat_id] = user_id
-        
+
         user = await user_collection.find_one({'id': user_id})
         if user:
             update_fields = {}
@@ -154,7 +151,11 @@ async def guess(update: Update, context: CallbackContext) -> None:
 
         keyboard = [[InlineKeyboardButton(f"See Harem", switch_inline_query_current_chat=f"collection.{user_id}")]]
         await update.message.reply_text(
-            f'<b><a href="tg://user?id={user_id}">{escape(update.effective_user.first_name)}</a></b> You Guessed a New Character ✅️ \n\n𝗡𝗔𝗠𝗘: <b>{last_characters[chat_id]["name"]}</b> \n𝗔𝗡𝗜𝗠𝗘: <b>{last_characters[chat_id]["anime"]}</b> \n𝗥𝗔𝗜𝗥𝗧𝗬: <b>{last_characters[chat_id]["rarity"]}</b>\n\nThis Character added in Your harem.. use /harem To see your harem',
+            f'<b><a href="tg://user?id={user_id}">{escape(update.effective_user.first_name)}</a></b> You Guessed a New Character ✅️ \n\n'
+            f'𝗡𝗔𝗠𝗘: <b>{last_characters[chat_id]["name"]}</b> \n'
+            f'𝗔𝗡𝗜𝗠𝗘: <b>{last_characters[chat_id]["anime"]}</b> \n'
+            f'𝗥𝗔𝗜𝗥𝗧𝗬: <b>{last_characters[chat_id]["rarity"]}</b>\n\n'
+            f'This Character added in Your harem.. use /harem To see your harem',
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -186,7 +187,8 @@ async def fav(update: Update, context: CallbackContext) -> None:
 
 
 def main() -> None:
-    application = Application.builder().token(shivuu.token).build()
+    BOT_TOKEN = Config.TOKEN  # ✅ Correct token from config
+    application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler(["guess", "protecc", "collect", "grab", "hunt"], guess, block=False))
     application.add_handler(CommandHandler("fav", fav, block=False))
