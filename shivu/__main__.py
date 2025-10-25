@@ -8,7 +8,7 @@ from html import escape
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filters, Application
 
-from shivu.config import Config
+from config import Config  # Make sure config.py is in project root
 from shivu import (
     collection,
     top_global_groups_collection,
@@ -187,7 +187,7 @@ async def fav(update: Update, context: CallbackContext) -> None:
 
 
 def main() -> None:
-    BOT_TOKEN = Config.TOKEN  # ✅ Correct token from config
+    BOT_TOKEN = Config.TOKEN  # ✅ Get token from config.py
     application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler(["guess", "protecc", "collect", "grab", "hunt"], guess, block=False))
