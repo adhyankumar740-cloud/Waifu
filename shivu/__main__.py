@@ -8,7 +8,7 @@ from html import escape
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filters, Application
 
-from config import Config  # Make sure config.py is in project root
+from shivu.config import Config  # Make sure config.py is in project root
 from shivu import (
     collection,
     top_global_groups_collection,
